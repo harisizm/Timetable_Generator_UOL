@@ -752,7 +752,7 @@ def display_visual_timetable(selected_section: str, selected_subjects: list[str]
     
     img = create_visual_timetable(filtered, selected_section, st.session_state.timeslot_labels)
     if img:
-        st.image(img, caption=f"Timetable for Section {selected_section}", use_column_width=True)
+        st.image(img, caption=f"Timetable for Section {selected_section}", use_container_width=True)
         st.download_button(
             label="📷 Download Timetable Image",
             data=img.getvalue(),
