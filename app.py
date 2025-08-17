@@ -122,26 +122,24 @@ def _fmt_time_cell(val):
     h12 = 12 if h == 0 else (h - 12 if h > 12 else h)
     return f"{h12}:{m:02d}"
 
-def match_subject_to_curriculum(timetable_subject: str, all_curriculum_subjects: list) -> str:
+def match_subject_to_curriculum(timetable_subject: str, semester_subjects: list) -> str:
     """
-    Match a subject from timetable to curriculum using fuzzy matching.
-    Returns the curriculum subject name if found, else the original subject.
+    Match a subject from timetable to semester curriculum using strict matching.
+    Only matches core subjects, ignores electives. Returns curriculum subject if matched, else None.
     """
     timetable_lower = timetable_subject.lower().strip()
     
-    # Direct match first
-    for curr_subject in all_curriculum_subjects:
+    # Skip elective subjects entirely
+    if any(word in timetable_lower for word in ['elective', 'domain elective']):
+        return None
+    
+    # Direct exact match first
+    for curr_subject in semester_subjects:
         if timetable_lower == curr_subject.lower():
             return curr_subject
     
-    # Partial matching - check if curriculum subject is contained in timetable subject
-    for curr_subject in all_curriculum_subjects:
-        curr_lower = curr_subject.lower()
-        if curr_lower in timetable_lower or timetable_lower in curr_lower:
-            return curr_subject
-    
-    # Special case mappings for common variations
-    mappings = {
+    # Special case mappings for common variations (only core subjects)
+    core_mappings = {
         "discrete structures": "Discrete Structures",
         "qr1": "Discrete Structures", 
         "applied physics": "Applied Physics",
@@ -152,7 +150,6 @@ def match_subject_to_curriculum(timetable_subject: str, all_curriculum_subjects:
         "database systems": "Database Systems",
         "data structures": "Data Structures",
         "linear algebra": "Linear Algebra",
-        "software engineering": "Software Engineering",
         "computer networks": "Computer Networks",
         "artificial intelligence": "Artificial Intelligence",
         "operating systems": "Operating Systems",
@@ -171,21 +168,49 @@ def match_subject_to_curriculum(timetable_subject: str, all_curriculum_subjects:
         "translation of the holy quran": "Translation of the Holy Quran",
         "pakistan studies": "Pakistan Studies",
         "pre-calculus": "Pre-Calculus I",
-        "human computer interaction": "Domain Elective 1",
-        "web engineering": "Domain Elective 2",
-        "mobile application development": "Domain Elective 3",
-        "e-commerce": "Domain Elective 4",
-        "data warehousing and data mining": "Domain Elective 5",
-        "natural language processing": "Domain Elective 6",
-        "operations research": "Domain Elective 7"
+        "pre-calculus i": "Pre-Calculus I",
+        "pre-calculus ii": "Pre-Calculus II",
+        "multivariable calculus": "Multivariable Calculus",
+        "calculus and analytic geometry": "Calculus and Analytic Geometry",
+        "qr2": "Calculus and Analytic Geometry",
+        "understanding of the holy quran": "Understanding of the Holy Quran",
+        "fehm-e-quran": "Understanding of the Holy Quran",
+        "expository writing": "Expository Writing",
+        "professional practices": "Professional Practices",
+        "civics and community engagement": "Civics and Community Engagement",
+        "digital logic design": "Digital Logic Design",
+        "computer organization and assembly language": "Computer Organization and Assembly Language",
+        "entrepreneurship": "Entrepreneurship",
+        "introduction to psychology": "Introduction to Psychology",
+        "analysis of algorithms": "Analysis of Algorithms",
+        "parallel and distributed computing": "Parallel and Distributed Computing",
+        "final year project i": "Final Year Project I",
+        "career development": "Career Development",
+        "capstone project ii": "Capstone Project II"
     }
     
-    for key, value in mappings.items():
-        if key in timetable_lower:
-            return value
+    # Check mappings only if the mapped subject is in the semester
+    for key, mapped_subject in core_mappings.items():
+        if key in timetable_lower and mapped_subject in semester_subjects:
+            return mapped_subject
     
-    # If no match found, return original
-    return timetable_subject
+    # Strict matching for "Software Engineering" - only match exact or very close
+    if "software engineering" in timetable_lower:
+        # Only match if it's exactly "Software Engineering" or very close
+        if timetable_lower in ["software engineering", "se"] and "Software Engineering" in semester_subjects:
+            return "Software Engineering"
+        # Don't match "Advance Software Engineering", "Software Engineering Lab", etc.
+        return None
+    
+    # For other subjects, only do partial matching if curriculum subject is exactly contained
+    for curr_subject in semester_subjects:
+        curr_lower = curr_subject.lower()
+        # Only match if curriculum subject name is exactly contained (not the other way around)
+        if curr_lower == timetable_lower:
+            return curr_subject
+    
+    # If no match found, return None (don't include in auto-selection)
+    return None
 
 def get_all_curriculum_subjects():
     """Get all subjects from all semesters."""
@@ -444,9 +469,9 @@ def create_visual_timetable(schedule_data: list[dict], section_name: str, times:
         ax.spines[sp].set_visible(False)
 
     # Legend moved to top-left (so it doesn't block subjects)
-    regular_patch = patches.Patch(color=colors['regular'], label='📖 Regular Classes')
-    lab_patch = patches.Patch(color=colors['lab'], label='🧪 Lab Classes')
-    ax.legend(handles=[regular_patch, lab_patch], loc='upper left', bbox_to_anchor=(0.005, 0.98))
+    # regular_patch = patches.Patch(color=colors['regular'], label='📖 Regular Classes')
+    # lab_patch = patches.Patch(color=colors['lab'], label='🧪 Lab Classes')
+    # ax.legend(handles=[regular_patch, lab_patch], loc='upper left', bbox_to_anchor=(0.005, 0.98))
 
     buf = BytesIO()
     plt.savefig(buf, format='png', dpi=300, bbox_inches='tight')
@@ -582,18 +607,17 @@ def display_semester_selector():
     return selected_semester if selected_semester != "" else None
 
 def get_subjects_for_semester_matching(semester: str, available_subjects: list[str]) -> list[str]:
-    """Get subjects from available list that match the semester curriculum."""
+    """Get subjects from available list that match the semester curriculum (core subjects only)."""
     if not semester:
         return []
     
     semester_subjects = DEFAULT_CURRICULUM.get(semester, [])
-    all_curriculum_subjects = get_all_curriculum_subjects()
     matched_subjects = []
     
     for subject in available_subjects:
-        # Try to match this subject to curriculum
-        matched_curriculum = match_subject_to_curriculum(subject, all_curriculum_subjects)
-        if matched_curriculum in semester_subjects:
+        # Try to match this subject to semester curriculum (core subjects only)
+        matched_curriculum = match_subject_to_curriculum(subject, semester_subjects)
+        if matched_curriculum:  # Only add if there's a valid match (not None)
             matched_subjects.append(subject)
     
     return matched_subjects
