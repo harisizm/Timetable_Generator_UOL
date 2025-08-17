@@ -527,11 +527,9 @@ def display_file_upload():
         """
         ### 📂 Upload SE Timetable
         Upload your Excel timetable to generate a visual schedule:
-        - ⏱️ Reads time slots exactly from **rows 5 & 6**
-        - 🏫 Uses **rooms from column B**
-        - 🧪 Detects labs (based on subject name)
-        - 📚 Smart semester-based filtering with manual override
-        - 🖼️ Generates a downloadable image
+        - ⏱️ Reads time slots ,room numbers for regular classes and labs with maximum precision
+        - 📚 Smart semester/section-based filtering 
+        - 🖼️ Generates a downloadable timetable image
         """
     )
     up = st.file_uploader("Choose your Excel timetable", type=["xlsx", "xls"], help="Upload timetable Excel file")
@@ -598,9 +596,10 @@ def display_semester_selector():
         st.info(
             f"""
 **{selected_semester} Auto-Selection**  
-• 📚 Will auto-check {len(subjects)} subjects  
-• ✅ You can still manually add/remove subjects  
 • 🎯 Helps you quickly select most relevant subjects
+• 📚 Auto-checked subjects for this semester: {len(subjects)}   
+• ✅ You can still manually add/remove subjects  
+
             """
         )
     
