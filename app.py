@@ -810,6 +810,17 @@ def main():
             st.info("💡 **Next Steps:** Select a section to filter subjects and generate your timetable")
         elif not selected_subjects:
             st.info("💡 **Next Steps:** Select at least one subject to generate your timetable")
+            
+            
+ # Subtle footer
+    st.markdown(
+        """
+        <div style='text-align: center; margin-top: 50px; color: gray; opacity: 0.5; font-size: 12px;'>
+            Made with ❤️ by Haris Iftikhar
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
