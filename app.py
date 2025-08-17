@@ -8,6 +8,8 @@ from datetime import time as dtime
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
+from mixpanel import Mixpanel
+import uuid   
 
 # -------------------------------------------------------------
 # Streamlit page config
@@ -18,6 +20,23 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# -------------------------------------------------------------
+# Mixpanel Setup
+# -------------------------------------------------------------
+MIXPANEL_TOKEN = "9922b6a32bad9ffed2da4be5918708ed" 
+mp = Mixpanel(MIXPANEL_TOKEN)
+
+# Generate a random session ID (since no login system yet)
+if "session_id" not in st.session_state:
+    st.session_state["session_id"] = str(uuid.uuid4())
+
+session_id = st.session_state["session_id"]
+
+# Track app load
+mp.track(session_id, "App Loaded")
+
+
 
 # -------------------------------------------------------------
 # Default Curriculum Data
@@ -523,6 +542,10 @@ def process_uploaded_file(uploaded_file, sheet_name=None):
 # -------------------------------------------------------------
 def display_file_upload():
     st.markdown('<div class="main-header">🎓 UOL-SE Timetable Generator</div>', unsafe_allow_html=True)
+    
+    #for anonymous tracking
+    mp.track("anonymous", "Page Visit")
+    
     st.markdown(
         """
         ### 📂 Upload SE Timetable
@@ -534,12 +557,19 @@ def display_file_upload():
     )
     up = st.file_uploader("Choose your Excel timetable", type=["xlsx", "xls"], help="Upload timetable Excel file")
     if up is not None:
+           
         st.info(f"📄 File uploaded: {up.name}")
         if st.button("🚀 Process Timetable", type="primary"):
             ok, n = process_uploaded_file(up)
             if ok:
                 st.success(f"✅ Processed {n} subject entries.")
+
+                # tracking file upload event correctly
+                mp.track("anonymous", "File Uploaded", {"filename": up.name})
+
                 st.rerun()
+               
+
 
 def display_section_selector():
     if not st.session_state.sections_summary:
@@ -709,6 +739,9 @@ def display_visual_timetable(selected_section: str, selected_subjects: list[str]
     
     st.markdown('<div class="section-header">🗓️ Your Visual Timetable</div>', unsafe_allow_html=True)
     
+    # Track timetable generation event
+    mp.track("anonymous", "Timetable Generated")
+
     filtered = st.session_state.extractor.create_timetable_for_section_subjects(selected_section, selected_subjects)
     if not filtered:
         st.warning("⚠️ No classes found for selected subjects in this section")
