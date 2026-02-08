@@ -16,7 +16,7 @@ This project solves typically time-consuming timetable conflicts by:
 3.  **Visualizing** the schedule as a high-quality PNG using `matplotlib`.
 4.  **Handling Exceptions**: Allowing students to select specific subjects from different sections (e.g., repeating a course or resolving a clash).
 
-## ✨ Key Features
+## 💥 Key Features
 
 -   **Excel Parsing Engine**: Reads complex, merged-cell Excel sheets to extract time slots, room numbers, and course details.
 -   **Regex-Based Identification**: robustly identifies subjects and sections (e.g., "Data Structures (Section A)" vs "Data Structures Lab") despite inconsistent naming conventions.
